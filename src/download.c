@@ -27,6 +27,15 @@ struct addrinfo* getIP(char* name){
 	return info;
 }
 
+void initURL(url* url){
+	memset(url->user, 0, sizeof(urlContent));
+	memset(url->password, 0, sizeof(urlContent));
+	memset(url->host, 0, sizeof(urlContent));
+	memset(url->path, 0, sizeof(urlContent));
+	memset(url->filename, 0, sizeof(urlContent));
+	url->port = FTP_PORT;
+}
+
 int main(int argc, char** argv){
 	if (argc != 2){
 		puts("incorrect usage of program");

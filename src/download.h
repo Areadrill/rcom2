@@ -11,3 +11,17 @@
 #define FTP_PORT 21
 struct addrinfo* getIP(char* name);
 
+char urlContent[256];
+
+typedef struct URL
+{
+	urlContent user; //string user
+	urlContent password; //string password
+	urlContent hostname; //string host
+	urlContent ip; //string IP
+	urlContent filename; //string filename
+	int port;
+};
+
+
+void initURL(url* url);
