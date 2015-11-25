@@ -27,14 +27,7 @@ struct addrinfo* getIP(char* name){
 	return info;
 }
 
-void initURL(url* url){
-	memset(url->user, 0, sizeof(urlContent));
-	memset(url->password, 0, sizeof(urlContent));
-	memset(url->host, 0, sizeof(urlContent));
-	memset(url->path, 0, sizeof(urlContent));
-	memset(url->filename, 0, sizeof(urlContent));
-	url->port = FTP_PORT;
-}
+
 
 int main(int argc, char** argv){
 	if (argc != 2){
@@ -55,5 +48,39 @@ int main(int argc, char** argv){
 	else
 		puts("connection successfully made");
 }
+
+URLData* parseURL(const char* url){
+	char* regexp = "ftp://(([^:]*):([^@]*)@)?([^/]+)/((.*)/(.*))";
+	regex_t regex;
+	int r =	regcomp(&regex, regexp, REG_EXTENDED);
+	if (r != 0){
+		perror("regex not compiled:");
+		return NULL;
+	}
+	regmatch_t pmatch[7];
+	r = regexec(&regex, url, 8, pmatch, 0);
+	if (r == REG_NOMATCH){
+		perror("regex not matches:");
+		return NULL;
+	}
+	//grupo 0 1 6 pra descartar	
+	URLData* data = malloc(sizeof(URLData));
+	data->user = malloc(1+pmatch[2].rm_eo-pmatch[2].rm_so);
+	data->password = malloc(1+pmatch[3].rm_eo-pmatch[3].rm_so);
+	data->hostname = malloc(1+pmatch[4].rm_eo-pmatch[4].rm_so);
+	data->filepath = malloc(1+pmatch[5].rm_eo-pmatch[5].rm_so);
+	data->filename = malloc(1+pmatch[7].rm_eo-pmatch[7].rm_so);
+	strncpy(data->user, url+pmatch[2].rm_so, pmatch[2].rm_eo-pmatch[2].rm_so+1);
+	strncpy(data->password, url+pmatch[3].rm_so, pmatch[3].rm_eo-pmatch[3].rm_so+1);
+	strncpy(data->hostname, url+pmatch[4].rm_so, pmatch[4].rm_eo-pmatch[4].rm_so+1);
+	strncpy(data->filepath, url+pmatch[5].rm_so, pmatch[5].rm_eo-pmatch[5].rm_so+1);
+	strncpy(data->filename, url+pmatch[7].rm_so, pmatch[7].rm_eo-pmatch[7].rm_so+1);
+	
+
+	regfree(&regex);
+	return data;
+	
+}
+
 
 

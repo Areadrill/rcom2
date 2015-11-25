@@ -8,20 +8,22 @@
 #include <netdb.h>
 #include <strings.h>
 #include <string.h>
+#include <regex.h>
 #define FTP_PORT 21
-struct addrinfo* getIP(char* name);
 
-char urlContent[256];
-
-typedef struct URL
+typedef struct _URLData
 {
-	urlContent user; //string user
-	urlContent password; //string password
-	urlContent hostname; //string host
-	urlContent ip; //string IP
-	urlContent filename; //string filename
-	int port;
-};
+	char* user; 
+	char* password; 
+	char* hostname; 
+	char* filename; 
+	char* filepath;
+}URLData;
 
 
-void initURL(url* url);
+struct addrinfo* getIP(char* name);
+URLData* parseURL(const char* url);
+
+
+
+
