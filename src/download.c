@@ -31,10 +31,18 @@ struct addrinfo* getIP(char* name){
 
 int main(int argc, char** argv){
 	if (argc != 2){
-		puts("incorrect usage of program");
+		printf("Usage: %s ftp://[username:password]@site/path/to/file", argv[0]);
 		exit(-1);
 	}
-	struct addrinfo *address = getIP(argv[1]);
+	puts(argv[1]);
+	URLData *data = parseURL(argv[1]);
+
+	
+		puts(data->filename); 	
+	
+	
+
+	struct addrinfo *address = getIP(data->hostname);
 	int socketfd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);	
 	if(socketfd == -1){
 		perror("couldn't open socket, aborting:");
@@ -50,7 +58,7 @@ int main(int argc, char** argv){
 }
 
 URLData* parseURL(const char* url){
-	char* regexp = "ftp://(([^:]*):([^@]*)@)?([^/]+)/((.*)/(.*))";
+	char* regexp = "ftp://(([^:]*):([^@]*)@)?([^/]+)/(.*/)?([^/]*)"; 
 	regex_t regex;
 	int r =	regcomp(&regex, regexp, REG_EXTENDED);
 	if (r != 0){
@@ -58,7 +66,7 @@ URLData* parseURL(const char* url){
 		return NULL;
 	}
 	regmatch_t pmatch[7];
-	r = regexec(&regex, url, 8, pmatch, 0);
+	r = regexec(&regex, url, 7, pmatch, 0);
 	if (r == REG_NOMATCH){
 		perror("regex not matches:");
 		return NULL;
@@ -69,13 +77,17 @@ URLData* parseURL(const char* url){
 	data->password = malloc(1+pmatch[3].rm_eo-pmatch[3].rm_so);
 	data->hostname = malloc(1+pmatch[4].rm_eo-pmatch[4].rm_so);
 	data->filepath = malloc(1+pmatch[5].rm_eo-pmatch[5].rm_so);
-	data->filename = malloc(1+pmatch[7].rm_eo-pmatch[7].rm_so);
-	strncpy(data->user, url+pmatch[2].rm_so, pmatch[2].rm_eo-pmatch[2].rm_so+1);
-	strncpy(data->password, url+pmatch[3].rm_so, pmatch[3].rm_eo-pmatch[3].rm_so+1);
-	strncpy(data->hostname, url+pmatch[4].rm_so, pmatch[4].rm_eo-pmatch[4].rm_so+1);
-	strncpy(data->filepath, url+pmatch[5].rm_so, pmatch[5].rm_eo-pmatch[5].rm_so+1);
-	strncpy(data->filename, url+pmatch[7].rm_so, pmatch[7].rm_eo-pmatch[7].rm_so+1);
-	
+	data->filename = malloc(1+pmatch[6].rm_eo-pmatch[6].rm_so);
+	strncpy(data->user, url+pmatch[2].rm_so, pmatch[2].rm_eo-pmatch[2].rm_so);
+	strncpy(data->password, url+pmatch[3].rm_so, pmatch[3].rm_eo-pmatch[3].rm_so);
+	strncpy(data->hostname, url+pmatch[4].rm_so, pmatch[4].rm_eo-pmatch[4].rm_so);
+	strncpy(data->filepath, url+pmatch[5].rm_so, pmatch[5].rm_eo-pmatch[5].rm_so);
+	strncpy(data->filename, url+pmatch[6].rm_so, pmatch[6].rm_eo-pmatch[6].rm_so);
+	data->user[pmatch[2].rm_eo-pmatch[2].rm_so] = 0;
+	data->password[pmatch[3].rm_eo-pmatch[3].rm_so] = 0;
+	data->hostname[pmatch[4].rm_eo-pmatch[4].rm_so] = 0;
+	data->filepath[pmatch[5].rm_eo-pmatch[5].rm_so] = 0;
+	data->filename[pmatch[6].rm_eo-pmatch[6].rm_so] = 0;
 
 	regfree(&regex);
 	return data;
