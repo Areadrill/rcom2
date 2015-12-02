@@ -34,14 +34,10 @@ int main(int argc, char** argv){
 		printf("Usage: %s ftp://[username:password]@site/path/to/file", argv[0]);
 		exit(-1);
 	}
-	puts(argv[1]);
-	URLData *data = parseURL(argv[1]);
-
 	
-		puts(data->filename); 	
+	URLData *data = parseURL(argv[1]);		
 	
 	
-
 	struct addrinfo *address = getIP(data->hostname);
 	int socketfd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);	
 	if(socketfd == -1){
@@ -55,6 +51,31 @@ int main(int argc, char** argv){
 	}
 	else
 		puts("connection successfully made");
+
+	char *userMsg = (char *) malloc(8+strlen(data->user));
+	sprintf(userMsg, "USER %s\r\n", data->user);
+	char *passMsg = (char *) malloc(8+strlen(data->password));
+	sprintf(passMsg, "PASS %s\r\n", data->password);
+	puts(userMsg);
+	char *responses = malloc(1000);
+	int i=0;
+
+	recv(socketfd, responses, 1000, 0);
+	printf("%d - %s", i++, responses);
+	int sent = write(socketfd, userMsg, strlen(userMsg));	
+	if(sent <= 0)
+		puts("si fodeu");
+	recv(socketfd, responses, 1000, 0);
+	printf("%d - %s", i++, responses);
+	memset(responses, 1000, 0);
+	puts(passMsg);
+	sent = send(socketfd, passMsg, strlen(passMsg), 0);
+	recv(socketfd, responses, 1000, 0);
+	if(sent <= 0)
+		puts("si fodeu");
+	printf("%d - %s", i++, responses);
+	
+	
 }
 
 URLData* parseURL(const char* url){
