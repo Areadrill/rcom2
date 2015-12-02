@@ -52,30 +52,64 @@ int main(int argc, char** argv){
 	else
 		puts("connection successfully made");
 
-	char *userMsg = (char *) malloc(8+strlen(data->user));
-	sprintf(userMsg, "USER %s\r\n", data->user);
-	char *passMsg = (char *) malloc(8+strlen(data->password));
-	sprintf(passMsg, "PASS %s\r\n", data->password);
-	puts(userMsg);
 	char *responses = malloc(1000);
-	int i=0;
+	recv(socketfd, responses, 1000, 0);
+	if(strncmp("220 ", responses, 4)){
+		printf("No 220 code received");
+		exit(-1);
+	}
+	free(responses);	
 
-	recv(socketfd, responses, 1000, 0);
-	printf("%d - %s", i++, responses);
-	int sent = write(socketfd, userMsg, strlen(userMsg));	
-	if(sent <= 0)
-		puts("si fodeu");
-	recv(socketfd, responses, 1000, 0);
-	printf("%d - %s", i++, responses);
-	memset(responses, 1000, 0);
-	puts(passMsg);
-	sent = send(socketfd, passMsg, strlen(passMsg), 0);
-	recv(socketfd, responses, 1000, 0);
-	if(sent <= 0)
-		puts("si fodeu");
-	printf("%d - %s", i++, responses);
+
+	int st;
+	if(data->user == NULL || data->password == NULL){
+		printf("No credentials provided. Logging in with default credentials:\nusername: anonymous\npassword: not.an@email.com");
+			st = login(socketfd, "anonymous", "not.an@email.com");	
+	}	
+	else{
+		st = login(socketfd, data->user, data->password);	
+	}
 	
-	
+	if(st == 0){
+		printf("Login successful\n");	
+	}
+	else if(st == -1){
+		printf("Error\n");
+	}
+	else if(st == -2){
+		printf("Login incorrect\n");
+	}
+}
+
+int login(int sockFd, char *username, char *password){
+	char *responses = malloc(1000);
+	char *userMsg = (char *) malloc(8+strlen(username));
+	sprintf(userMsg, "USER %s\r\n", username);
+	char *passMsg = (char *) malloc(8+strlen(password));
+	sprintf(passMsg, "PASS %s\r\n", password);
+
+	int sent = send(sockFd, userMsg, strlen(userMsg), 0);	
+	if(sent <= 0)
+		return -1;
+	recv(sockFd, responses, 1000, 0);
+
+	if(!strncmp("331 ", responses, 4)){
+		return -1;
+	}
+
+	sent = send(sockFd, passMsg, strlen(passMsg), 0);
+	if(sent <= 0)
+		return -1;
+	recv(sockFd, responses, 1000, 0);
+
+	if(!strncmp("530 ", responses, 4)){
+		return -2;
+	}	
+	else if(!strncmp("230 ", responses, 4)){
+		free(responses);
+		return 0;
+	}
+
 }
 
 URLData* parseURL(const char* url){
