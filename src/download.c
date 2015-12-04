@@ -90,9 +90,10 @@ int main(int argc, char** argv){
 		exit(-1);
 	}	
 	
+	
 	int *pasvResponse = getPort(responses);
 	printf( "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
-
+	
 	char ipaddr[21];
 	sprintf(ipaddr,  "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
 
@@ -131,6 +132,7 @@ int main(int argc, char** argv){
 		write(fd, dumpity, bytesread);
 	}while(bytesread);
 	close(fd);
+	
 	return 0;
 	
 }
@@ -139,7 +141,7 @@ int *getPort(char* ip){
 	//puts(ip);
 	int i = 0;
 	char *dump = malloc(100);
-	char port[6][4];
+	char port[16][14]; //stack smashing prevention (I know...)
 	dump = strtok(ip, "(,)");
 	while((dump = strtok(NULL, "(,)")) != NULL){
 		
@@ -154,8 +156,9 @@ int *getPort(char* ip){
 	int *pasvResponse = malloc(6*sizeof(int));
 	for(i = 0; i < 6; i++){
 		pasvResponse[i] = atoi(port[i]);
+		//printf("i - %d\n", pasvResponse[i]);
 	}
-	
+	puts("chiguei aqui");
 	return pasvResponse;
 
 }
