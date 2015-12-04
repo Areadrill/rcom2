@@ -58,7 +58,7 @@ int main(int argc, char** argv){
 		printf("No 220 code received");
 		exit(-1);
 	}
-	free(responses);	
+
 
 
 	int st;
@@ -75,10 +75,89 @@ int main(int argc, char** argv){
 	}
 	else if(st == -1){
 		printf("Error\n");
+		exit(-1);
 	}
 	else if(st == -2){
 		printf("Login incorrect\n");
+		exit(-2);
 	}
+
+	send(socketfd, "PASV\r\n", 6, 0);
+	recv(socketfd, responses, 1000, 0);
+	
+	if(strncmp(responses, "227 ", 4)){
+		printf("couldn't pasv\n");
+		exit(-1);
+	}	
+	
+	int *pasvResponse = getPort(responses);
+	printf( "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
+
+	char ipaddr[21];
+	sprintf(ipaddr,  "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
+
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons( (pasvResponse[4] << 8) + pasvResponse[5]);
+	inet_aton(ipaddr, (struct in_addr*) &addr.sin_addr.s_addr);
+
+	
+	int secondsocketfd = socket(AF_INET, SOCK_STREAM, 0);
+	int secondsocketconnect = connect(secondsocketfd,(const struct sockaddr*) &addr, sizeof(addr));
+	if(secondsocketconnect == -1){
+		puts("pasv connection not made");
+	}
+	char fileretr[400];
+	int lengthfileretr;
+	if(strlen(data->filepath) != 0)
+		lengthfileretr = snprintf(fileretr, 400, "RETR %s/%s\r\n", data->filepath, data->filename);	
+	else
+		lengthfileretr = snprintf(fileretr, 400, "RETR %s\r\n", data->filename);	
+
+	
+	send(socketfd, fileretr, lengthfileretr, 0);
+	recv(socketfd, responses, 1000, 0);
+
+	if(strncmp("150 ", responses, 4)){
+		puts("file is not exists");
+		return -1;
+	}
+
+	char dumpity[1000];
+	int bytesread;
+	int fd = open(data->filename, O_CREAT|O_TRUNC|O_WRONLY, 0777);
+	do{
+		bytesread = recv(secondsocketfd, dumpity, 1000, 0);
+		write(fd, dumpity, bytesread);
+	}while(bytesread);
+	close(fd);
+	return 0;
+	
+}
+
+int *getPort(char* ip){
+	//puts(ip);
+	int i = 0;
+	char *dump = malloc(100);
+	char port[6][4];
+	dump = strtok(ip, "(,)");
+	while((dump = strtok(NULL, "(,)")) != NULL){
+		
+		strcpy(port[i++], dump);
+		//puts(dump);
+	}
+	
+	/*for(i = 0; i < 6; i++){
+		puts(port[i]);
+	}*/
+	
+	int *pasvResponse = malloc(6*sizeof(int));
+	for(i = 0; i < 6; i++){
+		pasvResponse[i] = atoi(port[i]);
+	}
+	
+	return pasvResponse;
+
 }
 
 int login(int sockFd, char *username, char *password){
@@ -93,7 +172,9 @@ int login(int sockFd, char *username, char *password){
 		return -1;
 	recv(sockFd, responses, 1000, 0);
 
-	if(!strncmp("331 ", responses, 4)){
+	printf("0 - %s\n", responses);
+
+	if(strncmp("331 ", responses, 4)){
 		return -1;
 	}
 
@@ -101,6 +182,8 @@ int login(int sockFd, char *username, char *password){
 	if(sent <= 0)
 		return -1;
 	recv(sockFd, responses, 1000, 0);
+	
+	printf("1 - %s", responses);
 
 	if(!strncmp("530 ", responses, 4)){
 		return -2;
@@ -108,6 +191,9 @@ int login(int sockFd, char *username, char *password){
 	else if(!strncmp("230 ", responses, 4)){
 		free(responses);
 		return 0;
+	}
+	else{
+		return -1;	
 	}
 
 }

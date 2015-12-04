@@ -9,6 +9,8 @@
 #include <strings.h>
 #include <string.h>
 #include <regex.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #define FTP_PORT 21
 
 typedef struct _URLData
@@ -23,6 +25,7 @@ typedef struct _URLData
 
 struct addrinfo* getIP(char* name);
 URLData* parseURL(const char* url);
+int *getPort(char* ip);
 
 
 
