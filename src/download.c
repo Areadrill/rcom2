@@ -60,9 +60,8 @@ int main(int argc, char** argv){
 	}
 
 
-
 	int st;
-	if(data->user == NULL || data->password == NULL){
+	if(strlen(data->user) == 0 || strlen(data->password) == 0){
 		printf("No credentials provided. Logging in with default credentials:\nusername: anonymous\npassword: not.an@email.com");
 			st = login(socketfd, "anonymous", "not.an@email.com");	
 	}	
@@ -132,6 +131,8 @@ int main(int argc, char** argv){
 		write(fd, dumpity, bytesread);
 	}while(bytesread);
 	close(fd);
+	
+
 	
 	return 0;
 	
