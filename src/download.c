@@ -31,17 +31,23 @@ struct addrinfo* getIP(char* name){
 
 int main(int argc, char** argv){
 	if (argc != 2){
-		printf("Usage: %s ftp://[username:password]@site/path/to/file", argv[0]);
+		printf("Usage: %s ftp://[username:password]@site/path/to/file\n", argv[0]);
 		exit(-1);
 	}
 	
-	URLData *data = parseURL(argv[1]);		
+	URLData *data = parseURL(argv[1]);
+	if(data == NULL){
+		puts("Exiting");
+		exit(-1);
+	}		
 	
 	
 	struct addrinfo *address = getIP(data->hostname);
 	if(address == NULL){
 		exit(-1);
 	}
+
+
 	int socketfd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);	
 	if(socketfd == -1){
 		perror("couldn't open socket, aborting:");
@@ -65,7 +71,7 @@ int main(int argc, char** argv){
 
 	int st;
 	if(strlen(data->user) == 0 || strlen(data->password) == 0){
-		printf("No credentials provided. Logging in with default credentials:\nusername: anonymous\npassword: not.an@email.com");
+		printf("No credentials provided. Logging in with default credentials:\nusername: anonymous\npassword: not.an@email.com\n");
 			st = login(socketfd, "anonymous", "not.an@email.com");	
 	}	
 	else{
@@ -94,7 +100,7 @@ int main(int argc, char** argv){
 	
 	
 	int *pasvResponse = getPort(responses);
-	printf( "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
+	//printf( "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
 	
 	char ipaddr[21];
 	sprintf(ipaddr,  "%d.%d.%d.%d", pasvResponse[0], pasvResponse[1], pasvResponse[2], pasvResponse[3]);
@@ -110,32 +116,32 @@ int main(int argc, char** argv){
 	if(secondsocketconnect == -1){
 		puts("pasv connection not made");
 	}
+
+	
 	char fileretr[400];
 	int lengthfileretr;
 	if(strlen(data->filepath) != 0)
 		lengthfileretr = snprintf(fileretr, 400, "RETR %s/%s\r\n", data->filepath, data->filename);	
 	else
 		lengthfileretr = snprintf(fileretr, 400, "RETR %s\r\n", data->filename);	
-
 	
 	send(socketfd, fileretr, lengthfileretr, 0);
 	recv(socketfd, responses, 1000, 0);
-
 	if(strncmp("150 ", responses, 4)){
 		puts("file is unavailable at this time");
 		return -1;
 	}
 
-	char dumpity[1000];
+	char tmpfile[1000];
 	int bytesread;
 	int fd = open(data->filename, O_CREAT|O_TRUNC|O_WRONLY, 0777);
 	do{
-		bytesread = recv(secondsocketfd, dumpity, 1000, 0);
-		write(fd, dumpity, bytesread);
+		bytesread = recv(secondsocketfd, tmpfile, 1000, 0);
+		write(fd, tmpfile, bytesread);
 	}while(bytesread);
 	close(fd);
 	
-
+	free(responses);
 	
 	return 0;
 	
@@ -145,7 +151,7 @@ int *getPort(char* ip){
 	//puts(ip);
 	int i = 0;
 	char *dump = malloc(100);
-	char port[16][14]; //stack smashing prevention (I know...)
+	char port[16][14]; //stack smashing prevention 
 	dump = strtok(ip, "(,)");
 	while((dump = strtok(NULL, "(,)")) != NULL){
 		
@@ -166,7 +172,7 @@ int *getPort(char* ip){
 		pasvResponse[i] = atoi(port[i]);
 		//printf("i - %d\n", pasvResponse[i]);
 	}
-	puts("chiguei aqui");
+		 
 	return pasvResponse;
 
 }
@@ -183,7 +189,7 @@ int login(int sockFd, char *username, char *password){
 		return -1;
 	recv(sockFd, responses, 1000, 0);
 
-	printf("0 - %s\n", responses);
+	//printf("0 - %s\n", responses);
 
 	if(strncmp("331 ", responses, 4)){
 		return -1;
@@ -194,7 +200,7 @@ int login(int sockFd, char *username, char *password){
 		return -1;
 	recv(sockFd, responses, 1000, 0);
 	
-	printf("1 - %s", responses);
+	//printf("1 - %s", responses);
 
 	if(!strncmp("530 ", responses, 4)){
 		return -2;
