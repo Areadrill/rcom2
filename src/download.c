@@ -39,6 +39,9 @@ int main(int argc, char** argv){
 	
 	
 	struct addrinfo *address = getIP(data->hostname);
+	if(address == NULL){
+		exit(-1);
+	}
 	int socketfd = socket(address->ai_family, address->ai_socktype, address->ai_protocol);	
 	if(socketfd == -1){
 		perror("couldn't open socket, aborting:");
@@ -119,7 +122,7 @@ int main(int argc, char** argv){
 	recv(socketfd, responses, 1000, 0);
 
 	if(strncmp("150 ", responses, 4)){
-		puts("file is not exists");
+		puts("file is unavailable at this time");
 		return -1;
 	}
 
@@ -149,7 +152,11 @@ int *getPort(char* ip){
 		strcpy(port[i++], dump);
 		//puts(dump);
 	}
-	
+	if(i < 6){
+		printf("Address parsing failed. Exiting.\n");
+	}
+
+
 	/*for(i = 0; i < 6; i++){
 		puts(port[i]);
 	}*/
