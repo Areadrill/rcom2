@@ -1,0 +1,209 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+
+\title{Relatório}
+\author{João Cabral, João Mota, Luís Costa }
+\date{Dezembro 2015}
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+
+\section{Resumo}
+O presente relatório complementa o segundo projeto realizado no âmbito da unidade curricular Redes de Computadores do MIEIC, que consistiu na implementação de um cliente FTP simples, bem como na configuração e estudo de uma rede de computadores.
+O presente documento duas partes principais:
+\begin{itemize}
+\item Parte I, onde é discutida a aplicação desenvolvida.
+\item Parte II, onde é discutida a rede construída.
+\end{itemize}
+
+
+\newpage
+\section{Introdução}
+Coise.
+
+
+\section{Parte I: Cliente FTP}
+
+A primeira parte do projeto, como já foi referido, consistiu na implementação de um cliente FTP, capaz de comunicar com qualquer servidor FTP, para a receção de um ficheiro alojado no mesmo. Assim, foi necessário o estudo do protcolo FTP, bem como da utilização de \textit{sockets} em C e, finalmente, a utilização de expressões regulares POSIX, que foram aplicadas ao \textit{parsing} do URL providenciado pelo utilizador.
+
+\subsection{Funcionamento}
+
+A aplicação desenvolvida tem apenas um caso de uso: O utilizador corre o programa, passando-lhe como argumento uma string correspondente ao URL do ficheiro que pretende receber. A aplicação comunicará com o servidor correspondente, procedendo de seguida à autenticação utilizando as credenciais inseridas no URL, ou, caso não sejam espcificadas, as credenciais por defeito integradas na aplicação. No caso de uma autenticação bem sucedida, a aplicação pedirá ao servidor que estabeleça um canal de comunicação em modo passivo, ligando-se de seguida ao porto indicado pelo servidor. Finalmente, a aplicação pedirá ao servidor que inicie a transmissão do ficheiro epecificado no URL, escrevendo a informação recebida para um ficheiro no sistema de ficheiros local.
+Um URL FTP tem a seguinte forma:
+
+\textit{ftp://[username:password]@hostname/path/to/file}
+
+Para a recolha dos vários pedaços de informação necessários ao funcionamento do programa, os autores do relatório optaram pelo uso de uma expressão regular:
+
+\begin{verbatim}
+ftp://(([^:]*):([^@]*)@)?([^/]+)/(.*/)?([^/]*)
+\end{verbatim}
+
+Recolhida a informação, a aplicação irá resolver o \textit{hostname} providenciado, adquirindo assim o endereço de IP correspondente, estabelecendo de seguida uma ligação ao servidor correspondente ao IP adquirido através de uma \textit{socket}. Uma vez estabelecida esta ligação, a aplicação enviará, de acordo com o protocolo FTP, mensagens de autenticação:
+\\
+\textit{USER [username]}\\
+\textit{PASS [password]}
+\\
+Depois de enviada uma mesagem, a aplicação espera pela resposta do servidor, verificando de seguida se o código recebido é o esperado, sendo que o programa é parado em caso de erro.
+
+Efetuada a autenticação, é pedido ao servidor que abra um canal de comunicação em modo passivo através do comando PASV. A resposta do servidor terá, se tudo correr bem, a seguinte configuração:
+
+\textit{227 Entering Passive Mode (IP1, IP2, IP3, IP4, p1, p2)}
+
+Onde os IPs correspondem às diferentes partes de um identificador IPv4 (normalmente o mesmo da ligação que se estabeleceu inicialmente), e os p1 e p2 constituem a porta para onde o servidor enviará a informação, segundo a seguinte fórmula:
+
+\begin{equation}
+Port = p1*256 + p2
+\end{equation}
+
+Recebendo esta resposta, a aplicação utilizará um novo \textit{socket} para se ligar ao servidor com o endereço IP providenciado, na porta que lhe seja indicada.
+
+Finalmente, será pedido ao servidor que transmita o ficheiro especificado no URL através do comando RETR:
+
+\textit{RETR /path/to/file}
+
+O programa lerá a informação a partir do segundo \textit{socket}, ecrevendo-a para um ficheiro com o mesmo nome do ficheiro que está a ser transmitido. Finda a transmissão, o programa terminará, tendo cumprido a sua função.
+
+\newpage
+
+\section{Parte II: Configuração de uma rede de computadores}
+
+A segunda parte do projeto consitiu na configuração e estudo de uma rede de computador. Esta parte do projeto foi segmentada em várias partes, de forma a simplificar o estudo de cada componente da rede. Assim, as partes desta parte do projeto serão abordadas separadamente.
+
+\subsection{Experiência 1: Configuração de uma rede IP}
+
+\subsubsection{Procedimentos}
+Nesta primeira parte da experiência foi pedida a configuração de uma pequena rede IP constituída por dois computadores ligados ao mesmo \textit{switch}. Com recurso ao comando \textit{ifconfig} foi possível atribuir às interfaces de rede textit{eth0} de cada computador o IP especificado. Um computador foi configurado com o endereço 172.16.30.1 e o outro com o endereço 172.16.31.254. Foram estabelecidas, com o comando \textit{route}, as rotas necessárias para que os computadores comuniquem entre si.
+De seguida foi enviado um \textit{ping} de um computador para outro de forma a verificar que os computadores conseguem, de facto, comunicar entre si e para registar os mecanismos envolvidos nessa comunicação. 
+\subsubsection{Resultados}
+
+\subsubsection{Análise}
+
+
+\begin{figure}
+\centering
+\includegraphics[width=1.0\textwidth]{icmp_packet.PNG}
+\caption{Pacote ICMP \textit{echo request} observado pela ferramenta \textit{Wireshark}}
+\label{fig:icmp}
+\end{figure}
+
+
+%Observações, conclusões, resposta às perguntas
+Nesta primeira experiência foi construída uma rede simples. Todos os dispositivos estão diretamente ligados através de um switch e podem entregar os pacotes IP diretamente a qualquer destinatário dentro da rede, usando as interfaces ethernet que os ligam. Para estabelecer esta ligação entre dois nós da rede diretamente ligados são usados endereços MAC, que identificam de forma única cada interface ethernet. Um caso especial é o da interface \textit{loopback}, que está diretamente ligada ao próprio dispositivo e ocupa geralmente o endereço IP 127.0.0.1. Esta interface serve essencialmente para permitir o acesso a recursos locais, simulando o acesso aos mesmos como se estes se localizassem num servidor.
+
+Os pacotes do tipo ARP permitem a um computador adquirir o endereço MAC de um computador, dado o seu IP. Os pacotes ARP são \textit{broadcast} através de uma rede para que o computador que esteja configurado com o IP especificado nos pacotes ARP possa encontrá-lo e responder com o seu endereço MAC ao computador que fez o \textit{broadcast} do pacote inicial. Isto é observado no logs da experiência 1. Contudo, por motivos não explicados, os computadores em questão conseguem receber e enviar pacotes mesmo antes de o emissor obter, através do protocolo \textit{ARP}, o endereço MAC do recetor.
+
+A ferramenta \textit{Unix ping} gera pacotes do protocolo ICMP, com um cabeçalho formatado de tal forma que o o primeiro octeto, correspondente ao tipo, tenha o valor 8 no caso de ser um pedido e 0 no caso de ser uma resposta. O segundo octeto, correspondente ao código, tem, em ambos os casos, o valor 0. O terceiro e quarto octetos são usados para fazer a validação da integridade do pacote ICMP através de um \textit{checksum}. Os 2 octetos seguintes correspondem ao identificador, que em Unix corresponde, geralmente, ao processo do sistema operativo que está a ser usado para a transmissão do pacote. De seguida, ocupando também 2 octetos, surge o número de sequência, que aumenta de forma unitária dentro de cada processo, com cada envio de um pacote. Por último o \textit{payload}, de tamanho variável, contém neste caso um \textit{timestamp} que permite à aplicação computar tempos de resposta a cada \textit{ping}. A figura \ref{fig:icmp} ilustra um dos pacotes ICMP gerados pela ferramenta.
+
+Da análise dos \textit{logs} obtidos pode-se concluir que o endereço IP de cada \textit{echo request} é o da máquina de destino dentro da rede, o mesmo acontecendo com o MAC address. O endereço IP e MAC do pacote de resposta \textit{echo reply} é o da máquina que efetua o \textit{ping}.
+
+Os pacotes ICMP são um de vários tipos de pacotes que podem ser transmitidos através do protocolo IP, cujo cabeçalho precede o cabeçalho acima descrito. Para permitir destinguir entre pacotes o cabeçalho IP contêm um campo, correspondente ao nono octeto, que especifica numericamente o código do protocolo do pacote atual. No caso de pacotes ICMP o valor desse campo é de 1. Da mesma forma, o tamanho total do pacote é codificado neste cabeçalho IP, nos terceiro e quarto octetos.
+
+\newpage
+\subsection{Experiência 2: Implementação de duas VLANs num switch}
+\subsubsection{Procedimentos}
+Nesta parte da experiência foi pedido que se configurassem duas \textit{Virtual Local Area Network}s, doravente designadas por VLANS, no switch utilizado, a primeira contendo os as interfaces a que se ligaram as interfaces eth0 dos computadores 1 e 4, a segunda contendo apenas a interface \textit{eth0} do computador 2.
+
+De seguida foi pedido que fosse testada a conectividade entre o computador 1 e os restantes com recurso à ferramenta \textit{ping}.
+
+Para a configuração das VLANs nos \textit{switches} da CISCO presentes no laboratório, foram utilizados os comandos \textit{vlan}, que recebem como argumento o nome a atribuir à VLAN criada. De seguida, para adicionar as interfaces às respetivas VLANs, é necessário selecionar o a interface a adicionar através do comando \textit{interface fastethernet 0/x}, onde x representa o número da porta do switch onde está ligada a interface que se pretende adicionar. De seguida, adiciona-se a interface à VLAN utilizando os seguintes comandos:
+\begin{enumerate}
+\item \textit{switchport mode access}
+\item \textit{switchport access vlan x}, onde x é o nome da VLAN a que queremos adicionar a interface.
+\end{enumerate}
+
+
+\subsubsection{Resultados}
+
+\subsubsection{Análise}
+A configuração de uma VLAN limita o tamanho do domínio de \textit{broadcast} da rede que está ligada ao \textit{switch}, particionando o mesmo em vários subdomínios onde é possível a receção de \textit{broadcasts} e pacotes apenas de destinos cujas interfaces pertençam à mesma VLAN.
+
+Isto resulta efetivamente no isolamento do computador 2 em relação aos computadores 1 e 4, visto estarem em sub-redes diferentes.
+
+A análise dos logs de rede registados aquando da emissão de pacotes \textit{echo request} com destinatário \textit{broadcast} confirmam a existência de dois domínios de \textit{broadcast} destintos, sendo o primeiro o composto pelos computadores 1 e 4 e o segundo exclusivamente pelo computador 2. Com efeito, cada um destes computadores só recebe resposta ao \textit{echo request} por parte de computadores dentro do seu dominio, como pode ser observado na figura \ref{fig:broadcast-vlan}.
+
+
+
+
+É possível observar a existência de dois domínios de \textit{broadcast} no logs da experiência pelo facto de os pings que têm como destino a endereço de \textit{broadcast} feitos pelos computadores de uma VLAN não são apanhados nos computadores da outra.
+
+\subsection{Experiência 3: Configuração de um Router em Linux}
+
+\subsubsection{Procedimentos}
+Nesta experiência foi pedido que se transformasse o computador 4  num \textit{router}. Para tal, foi necessário configurar também a interface \textit{eth1} deste computador, conforme descrito na secção correspondente à experiência 1. De seguida, foi necessário adicionar a nova interface à VLAN à qual pertencia o computador 2 na experiência anterior. Feito isto, o computador 4 tem uma interface de rede em cada VLAN, tornando assim possível, através dele, a comunicação entre máquinas de VLANs diferentes. Para o efeito, é necessário que em cada computador existam rotas na tabela de reencaminhamento que façam com que os pacotes sejam encaminhados para a interface e destino corretos. Assim, recorrendo ao comando \textit{route}, devem adicionar-se rotas que encaminhem o tráfego que não tem como destino uma interface que esteja dentro da mesma VLAN para a interface do \textit{router}. O \textit{router},por sua vez terá rotas que fazem com que o tráfego seja direcionado para a interface correta, nomeadamente \textit{eth0} para 172.16.y0.0/24 e \textit{eth1} para 172.16.y1.0/24.
+
+\subsubsection{Resultados}
+
+\subsubsection{Análise}
+A tabela de encaminhamento define o procedimento a tomar aquando da receção de pacotes de rede cujo destino final não seja o próprio computador. Mais concretamente, especifica para cada par endereço de destino/mascara de rede a interface e endereço de rede para qual o pacote deve ser direcionado. Uma máscara de rede é entendida como o conjunto de bits cujo valor deve ser tomado em conta para a decisão de encaminhamento. As possíveis ambiguidades introduzidas pela existência desta máscara são resolvidas através do uso da \textit{regra do prefixo mais longo}. Quando um endereço de destino pode corresponder a duas ou mais entradas na tabela de encaminhamento a entrada escolhida é aquela que possua um prefixo maior, e que portanto tenha um maior conjunto de bits mais significativos relevantes para a escolha a efetuar. Por exemplo, se existirem duas entradas com endereço de destino 172.16.30.10, mas a primeira possuir uma máscara de 255.255.0.0 e a segunda uma máscara de 255.255.255.0, a entrada escolhida será a segunda, sempre que o endereço de destino de um pacote tenha correspondência com ambas as entradas, como tem o endereço 172.16.30.24, por exemplo.
+
+
+No caso do computador 1, deve existir uma rota que faça com que o tráfego com destino aos endereços 172.16.31.0/24 (todos os endereços com o prefixo 172.16.31) sejam reencaminhados para a \textit{gateway} 172.16.30.254, que representa a interface do \textit{router} na VLAN que contém o computador 1. Já no computador 2 deve existir uma rota que reencaminhe o tráfego com destino 172.16.30.0/24 para 172.16.31.253, a interface do router na VLAN que contém o computador 2. O \textit{router}, por sua vez, deve reencaminhar o trafego com destino à rede do computador 1 para a interface com o ip 172.16.30.254, e todo o trafego com destino à rede do computador 2 para a interface de endereço 172.16.31.254.
+
+Quando se efetua um ping com origem na rede do computador 1 e destino na rede do computador 2 pode observar-se que o protocolo ARP é utilizado para informar o computador 1 do endereço MAC da interface do router que está ligado à sua rede, bem como para informar o \textit{router} do endereço MAC do computador 2. Este comportamento justifica-se pelo caminho tomado pelo tráfego enviado do computador 1, que deve primeiro, de acordo com a tabela de encaminhamento definida, ser enviado para o endereço 172.16.30.254, de onde será posteriormente enviada para o seu destino. Dado que qualquer dos computadores envolvidos neste encaminhamento de dados desconhece qual o endereço MAC da \textit{gateway} que vai utilizar, torna-se necessário o recurso a dois pedidos ARP distintos.
+
+Um pacote  mantém o seu endereço IP de origem e destino inalterado ao longo de todo o seu percurso por uma rede, o que é necessário para que seja possível a cada router no caminho encaminhar corretamente o pacote segundo a sua tabela de encaminhamento e para que o computador no endereço de destino saiba para que endereço deve enviar as suas respostas. O endereço de origem indica, portanto, não o router que efetuou o último reencaminhamento mas sim o computador que efetuou o primeiro pedido.
+
+O endereço MAC contudo corresponde ao próximo destino e a última origem de cada trama \textit{ethernet}, o que é necessário para possibilitar a entrega do pacote ao próximo \textit{router} no caminho do pacote. Assim, em cada salto do pacote, o endereço MAC de origem é reescrito para ser o endereço MAC da interface do  \textit{router} que efetua o encaminhamento e o endereço MAC de destino é reescrito para ser o endereço da interface do próximo \textit{router}.
+
+Por conseguinte os endereços especificados no \textit{header} IPv4 não são alterados a cada salto na rede ao contrário dos especificados na trama \textit{ethernet}. O protocolo IPv4 pertence a uma camada superior à do protocolo \textit{ethernet}, fornecendo serviços que ligam toda a rede, ao passo que os serviços da camada a que pertence a trama \textit{ethernet} concernem à ligação fiável entre duas máquinas diretamente ligadas.
+\newpage
+\subsection{Experiência 4: Configuração de um router comercial e implementação de NAT}
+
+\subsubsection{Procedimentos}
+Nesta experiência foi pedida a configuração de um \textit{router} CISCO, a ser incluído na VLAN que contém também o computador 2, e que liga ao \textit{router} do laboratório, dando assim acesso à internet. Posteriormente foi pedida a implementação de NAT neste router, de forma a que os pacotes vindos da internet pudessem chegar aos computadores dentro da rede configurada. 
+
+As tabelas de encaminhamentos foram, por conseguinte, alteradas para que o \textit{router} por defeito das interfaces e computadores ligados à segunda rede passasse a ser o \textit{router} da \textit{CISCO}, doravente designado por RC. Foi também configurada, no RC, a rota para a rede do computador 1, recorrendo ao router do computador 4.
+
+Para efetuar a configuração das rotas do RC foi necessário recorrer a linha de comandos da interface de porta de série do dispositivo em causa. O comando necessário à configuraçao de uma rota estática é:
+
+\begin{verbatim}
+ip route IP-prefixo mascara gateway
+\end{verbatim}
+
+De seguida efetuou-se a remoçao da rota do computador 2 para a rede do computador 1 a fim de testar o comportamento da rede quando este tentava comunicar com o computador 1, com ou sem aceitação de redirects.
+
+A configuraçao do NAT no \textit{router} RC é efetuada com os seguintes comandos:
+\begin{itemize}
+\item ip nat pool ovrld ip-da-interface-externa ip-da-interface-externa  prefix bits-da-mascara
+\item ip nat inside source list 1 pool ovrld overload 
+\item access-list 1 permit endereço-da-rede-interna mascara (\textit{um comando por rede interna})
+\end{itemize}
+
+\subsubsection{Análise}
+O caminho tomado pelos pacotes enviados do tux2 depende não só da sua configuração de rotas mas também da configuração do computador ao nível da aceitaçao de redirects. Se o computador estiver configurado para direcionar o tráfego pelo computador 4 o comportamente é igual ao das experiências anteriores. Se esta rota for removida o computador 2 passa a entregar todo o seu tráfego ao seu \textit{router} por defeito, o computador 4, que por sua vez o redirecionará, de acordo com a rota nele configurada, para o \textit{router} do computador 4, de onde o pacote será entregue por fim ao computador 1. Contudo se a aceitação de redirecionamentos for ligada no computador 2, este atenderá à informaçao que o \textit{router} RC lhe enviará através de um pacote ICMP do tipo \textit{redirect}, informando-o da existência, na mesma rede, de um router com uma ligação mais curta ao computador 1, o router do computador 4. Assim, neste caso, o trafego passará a fluir como se existisse uma rota para o computador 1 através do router 4, apesar da mesma ter sido removida da tabela de encaminhamento do computador 2.
+
+A utilização de NAT é imprescindível para um correto acesso à internet. Sem a utilização do mesmo apenas é possível entregar o tráfego de saída da rede a um servidor externo, mas não é possível a esse servidor externo responder ao pedido, já que os endereços da rede interna de cada dispositivo não são, regra geral, únicos fora da rede em que estão configurados, o que impossibilita a identificação do computador de origem por parte do servidor. O NAT permite aos computadores ligados a um \textit{router} usarem exclusivamente o seu IP externo. Quando o \textit{router} recebe um pacote IP para entregar à rede externa, substitui o endereço de origem pelo seu próprio endereço e por um porto, criando uma entrada numa tabela interna em que associa esse novo endereço e porto ao endereço e porto internos utilizados. De seguida trata de reencaminhar as respostas que sejam dadas para esse novo porto externo para o endereço e porto interno que constem da tabela.  
+%Para configurar o \textit{router} foi necessário atribuir às interfaces do mesmo IPs. Para tal, usou-se os %seguintes comandos: 
+%\textit{interface gigabitethernet 0/x}, para selecionar a interface a configurar,\\
+%\textit{ip address 172.16.31.254 255.255.255.0}, para atribuir o IP especificado à interface do \textit{router} %que se encontra dentro da VLAN do computador 2\\
+%\textit{ip nat pool inside}, se se estiver a configurar também NAT.
+%\textit{ip address 172.16.1.38 255.255.255.0} para atribuir o IP especificado à interface que comunica com o %\textit{router} do laboratório.\\
+%\textit{ip nat pool outside} se se estiver a configurar também NAT.
+%n tou a escrever nada d jeito...
+
+\newpage
+
+\subsection{Experiência 5: Configuração de DNS}
+\subsubsection{Procedimentos}
+Nesta experiência foi pedido que se configurasse os vários computadores para que tivessem acesso ao DNS especificado. O DNS (Domain Name Server) serve para a resolução de \textit{hostnames} em IPs, permitindo assim que um utilizador não tenha que decorar IPs para aceder aos sítios pretendidos. Para o efeito foi necessário editar o ficheiro \textit{/etc/resolv.conf}, adicionando-lhe as seguintes linhas:
+
+\textit{search netlab.fe.up.pt}\\
+\textit{nameserver 172.16.1.1}
+
+\subsubsection{Análise}
+O protocolo DNS é implementado com recurso a um pacote de DNS que é enviado para o servidor de resolução de endereços configurado em cada computador de cada vez que este necessita de traduzir um \textit{hostname} num endereço IP. O servidor de nomes responde a este pacote com um pacote contendo o endereço IP correspondente, caso exista, ou uma breve mensagem de erro, como ilustrado pela figura \ref{fig:dns}.
+
+\begin{figure}
+\centering
+\includegraphics[width=1.0\textwidth]{dns.png}
+\caption{Pacote DNS observado pela ferramente \textit{Wireshark} }
+\label{fig:dns}
+\end{figure}
+\end{document}
+
